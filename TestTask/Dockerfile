@@ -1,40 +1,15 @@
-name: CrewRedTestTask
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-services:
-  postgres:
-    image: postgres:17.4-alpine3.21
-    container_name: inforce_db
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: restaurant
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+WORKDIR /app
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
+COPY pyproject.toml uv.lock ./
 
-  django:
-    build: .
-    container_name: django_app
-    restart: always
-    depends_on:
-      - postgres
-    volumes:
-      - ./app:/app
-    ports:
-      - "8000:8000"
+RUN uv sync --frozen --no-install-project
 
-volumes:
-  postgres_data:
+COPY . .
+
+RUN uv sync --frozen
+
+EXPOSE 8000
+
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
